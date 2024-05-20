@@ -157,23 +157,23 @@ int main() {
         glm::vec3(8.0f, 0.0f, 0.0f),    // Wenus
         glm::vec3(10.0f, 0.0f, 0.0f),    // Ziemia
         glm::vec3(13.0f, 0.0f, 0.0f),    // Mars
-        glm::vec3(17.0f, 0.0f, 0.0f),    // Jowisz
-        glm::vec3(22.0f, 0.0f, 0.0f),    // Saturn
-        glm::vec3(27.0f, 0.0f, 0.0f),    // Uran
-        glm::vec3(32.0f, 0.0f, 0.0f),    // Neptun
+        glm::vec3(20.0f, 0.0f, 0.0f),    // Jowisz
+        glm::vec3(28.0f, 0.0f, 0.0f),    // Saturn
+        glm::vec3(36.0f, 0.0f, 0.0f),    // Uran
+        glm::vec3(44.0f, 0.0f, 0.0f),    // Neptun
         // Add more planet positions as needed
     };
-
+    float size_factor = 0.5f;
     glm::vec3 planetScales[] = {
         glm::vec3(5.0f, 5.0f, 5.0f),   // Slonce
-        glm::vec3(0.25f, 0.25f, 0.25f),   // Merkury
-        glm::vec3(0.45f, 0.45f, 0.45f),    // Wenus
-        glm::vec3(0.5f, 0.5f, 0.5f),    // Ziemia
-        glm::vec3(0.3f, 0.3f, 0.3f),    // Mars
-        glm::vec3(2.5f, 2.5f, 2.5f),    // Jowisz
-        glm::vec3(2.0f, 2.0f, 2.0f),    // Saturn
-        glm::vec3(1.5f, 1.5f, 1.5f),    // Uran
-        glm::vec3(1.5f, 1.5f, 1.5f),    // Neptun
+        glm::vec3(size_factor*0.38, size_factor * 0.38, size_factor * 0.38),         // Merkury
+        glm::vec3(size_factor * 0.949, size_factor * 0.949, size_factor * 0.949),    // Wenus
+        glm::vec3(size_factor, size_factor, size_factor),                            // Ziemia
+        glm::vec3(size_factor*0.53, size_factor * 0.53, size_factor * 0.53),         // Mars
+        glm::vec3(size_factor * 11.2,size_factor * 11.2, size_factor * 11.2),         // Jowisz
+        glm::vec3(size_factor * 9.45, size_factor * 9.45, size_factor * 9.45),       // Saturn
+        glm::vec3(size_factor * 4, size_factor * 4, size_factor * 4),                // Uran
+        glm::vec3(size_factor * 3.88, size_factor * 3.88, size_factor * 3.88),       // Neptun
         // Dodaj więcej współczynników skalowania dla kolejnych planet
     };
     float speed_factor = 40.0f;
