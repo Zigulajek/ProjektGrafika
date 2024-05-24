@@ -19,6 +19,8 @@ unsigned int loadShader(const char* vertexPath, const char* fragmentPath);
 std::vector<float> generateFlatRingVertices(float radius, float ringWidth, int segments);
 std::vector<unsigned int> generateFlatRingIndices(int segments);
 void drawOrbit(float radius, int segments, glm::mat4 view, glm::mat4 projection, unsigned int shaderProgram);
+unsigned int loadTexture(const char* path);
+std::vector<float> generateSphereVertices(float radius, int sectorCount, int stackCount);
 
 
 // Camera settings
@@ -97,6 +99,8 @@ int main() {
             float x = cosPhi * sinTheta;
             float y = cosTheta;
             float z = sinPhi * sinTheta;
+            float u = (float)j / sectorCount;
+            float v = (float)i / stackCount;
 
             // vertex position
             vertices.push_back(radius * x);
@@ -107,6 +111,10 @@ int main() {
             vertices.push_back(x);
             vertices.push_back(y);
             vertices.push_back(z);
+
+            // texture coordinates
+            vertices.push_back(u);
+            vertices.push_back(v);
         }
     }
 
@@ -144,11 +152,14 @@ int main() {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), sphereIndices, GL_STATIC_DRAW);
 
     // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     // Normal attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    // Texture coord attribute
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     // Enable depth testing
     glEnable(GL_DEPTH_TEST);
@@ -248,6 +259,30 @@ int main() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
+    unsigned int earthTexture = loadTexture("textures/earth.jpg");
+    unsigned int sunTexture = loadTexture("textures/sun.jpg");
+    unsigned int mercuryTexture = loadTexture("textures/mercury.jpg");
+    unsigned int venusTexture = loadTexture("textures/venus.jpg");
+    unsigned int marsTexture = loadTexture("textures/mars.jpg");
+    unsigned int jupiterTexture = loadTexture("textures/jupiter.jpg");
+    unsigned int saturnTexture = loadTexture("textures/saturn.jpg");
+    unsigned int uranusTexture = loadTexture("textures/uranus.jpg");
+    unsigned int neptuneTexture = loadTexture("textures/neptune.jpg");
+    unsigned int moonTexture = loadTexture("textures/moon.jpg");
+    unsigned int saturnRingTexture = loadTexture("textures/saturn_ring.jpg");
+
+    unsigned int planetTextures[] = {
+    sunTexture,      // Słońce
+    mercuryTexture,  // Merkury
+    venusTexture,    // Wenus
+    earthTexture,    // Ziemia
+    marsTexture,     // Mars
+    jupiterTexture,  // Jowisz
+    saturnTexture,   // Saturn
+    uranusTexture,   // Uran
+    neptuneTexture,  // Neptun
+    moonTexture      // Księżyc
+    };
 
 
    // Render loop
@@ -311,7 +346,7 @@ int main() {
             drawOrbit(glm::length(planetPositions[i]), 100, view, projection, shaderProgram);
         }
 
-        // Render the planets
+        // Render the planets and their moons
         for (unsigned int i = 0; i < sizeof(planetPositions) / sizeof(glm::vec3); ++i) {
             glm::mat4 model = glm::mat4(1.0f);
 
@@ -325,15 +360,16 @@ int main() {
             else {
                 model = glm::translate(model, planetPositions[i]);
             }
+
             model = glm::scale(model, planetScales[i]);
             glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
-            glUniform3fv(glGetUniformLocation(shaderProgram, "planetColor"), 1, glm::value_ptr(planetColors[i]));
-            if (i == 0) {
-                glUniform1i(glGetUniformLocation(shaderProgram, "isSun"), 1);
-            }
-            else {
-                glUniform1i(glGetUniformLocation(shaderProgram, "isSun"), 0);
-            }
+            glUniform1i(glGetUniformLocation(shaderProgram, "isSun"), (i == 0) ? 1 : 0);
+
+            // Bind the texture
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, planetTextures[i]);
+            glUniform1i(glGetUniformLocation(shaderProgram, "material.texture_diffuse"), 0);
+
             glBindVertexArray(VAO);
             glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 
@@ -345,29 +381,39 @@ int main() {
                 float saturnZ = sin(glm::radians(orbitAngles[6])) * saturnOrbitRadius;
                 ringModel = glm::translate(ringModel, glm::vec3(saturnX, 0.0f, saturnZ));
                 glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(ringModel));
+
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, saturnRingTexture);
+                glUniform1i(glGetUniformLocation(shaderProgram, "material.texture_diffuse"), 0);
+
                 glBindVertexArray(flatRingVAO);
                 glDrawElements(GL_TRIANGLES, flatRingIndices.size(), GL_UNSIGNED_INT, 0);
             }
-
-            // Renderowanie Księżyca
-            if (i == 3) {
-                glm::mat4 moonModel = glm::mat4(1.0f);
-                float earthOrbitRadius = glm::length(planetPositions[3]);
-                float earthX = cos(glm::radians(orbitAngles[3])) * earthOrbitRadius;
-                float earthZ = sin(glm::radians(orbitAngles[3])) * earthOrbitRadius;
-                float moonX = cos(glm::radians(moonOrbitAngle)) * moonOrbitRadius;
-                float moonZ = sin(glm::radians(moonOrbitAngle)) * moonOrbitRadius;
-                moonModel = glm::translate(moonModel, glm::vec3(earthX + moonX, 0.0f, earthZ + moonZ));
-                moonModel = glm::scale(moonModel, glm::vec3(size_factor * 0.273f, size_factor * 0.273f, size_factor * 0.273f));
-                glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(moonModel));
-                glUniform3fv(glGetUniformLocation(shaderProgram, "planetColor"), 1, glm::value_ptr(glm::vec3(0.8f, 0.8f, 0.8f)));
-                glUniform1i(glGetUniformLocation(shaderProgram, "isSun"), 0);
-                glBindVertexArray(VAO);
-                glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
-            }
         }
 
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+        // Renderowanie księżyca Ziemi
+        float earthOrbitRadius = glm::length(planetPositions[3]);
+        float earthX = cos(glm::radians(orbitAngles[3])) * earthOrbitRadius;
+        float earthZ = sin(glm::radians(orbitAngles[3])) * earthOrbitRadius;
+        glm::vec3 earthPos = glm::vec3(earthX, 0.0f, earthZ);
+
+        float moonX = cos(glm::radians(moonOrbitAngle)) * moonOrbitRadius;
+        float moonZ = sin(glm::radians(moonOrbitAngle)) * moonOrbitRadius;
+
+        glm::mat4 moonModel = glm::mat4(1.0f);
+        moonModel = glm::translate(moonModel, earthPos + glm::vec3(moonX, 0.0f, moonZ));
+        moonModel = glm::scale(moonModel, glm::vec3(size_factor * 0.273f, size_factor * 0.273f, size_factor * 0.273f));
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(moonModel));
+        glUniform1i(glGetUniformLocation(shaderProgram, "isSun"), 0);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, moonTexture);
+        glUniform1i(glGetUniformLocation(shaderProgram, "material.texture_diffuse"), 0);
+
+        glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+
+        // Swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -488,6 +534,46 @@ std::vector<unsigned int> generateFlatRingIndices(int segments) {
         indices.push_back(nextSecond);
     }
     return indices;
+}
+
+std::vector<float> generateSphereVertices(float radius, int sectorCount, int stackCount) {
+    std::vector<float> vertices;
+    float x, y, z, xy;
+    float nx, ny, nz, lengthInv = 1.0f / radius;
+    float s, t;
+
+    float sectorStep = 2 * glm::pi<float>() / sectorCount;
+    float stackStep = glm::pi<float>() / stackCount;
+    float sectorAngle, stackAngle;
+
+    for (int i = 0; i <= stackCount; ++i) {
+        stackAngle = glm::pi<float>() / 2 - i * stackStep;
+        xy = radius * cosf(stackAngle);
+        z = radius * sinf(stackAngle);
+
+        for (int j = 0; j <= sectorCount; ++j) {
+            sectorAngle = j * sectorStep;
+
+            x = xy * cosf(sectorAngle);
+            y = xy * sinf(sectorAngle);
+            nx = x * lengthInv;
+            ny = y * lengthInv;
+            nz = z * lengthInv;
+
+            s = (float)j / sectorCount;
+            t = (float)i / stackCount;
+
+            vertices.push_back(x);
+            vertices.push_back(y);
+            vertices.push_back(z);
+            vertices.push_back(nx);
+            vertices.push_back(ny);
+            vertices.push_back(nz);
+            vertices.push_back(s);
+            vertices.push_back(t);
+        }
+    }
+    return vertices;
 }
 
 void drawOrbit(float radius, int segments, glm::mat4 view, glm::mat4 projection, unsigned int shaderProgram) {
@@ -615,3 +701,38 @@ unsigned int loadShader(const char* vertexPath, const char* fragmentPath) {
 
     return shaderProgram;
 }
+
+unsigned int loadTexture(const char* path) {
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrComponents;
+    unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
+    if (data) {
+        GLenum format;
+        if (nrComponents == 1)
+            format = GL_RED;
+        else if (nrComponents == 3)
+            format = GL_RGB;
+        else if (nrComponents == 4)
+            format = GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+    }
+    else {
+        std::cout << "Failed to load texture: " << path << std::endl;
+        stbi_image_free(data);
+    }
+
+    return textureID;
+}
+
