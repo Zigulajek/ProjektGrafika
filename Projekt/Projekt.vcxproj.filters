@@ -30,4 +30,9 @@
       <Filter>Pliki zasobów</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stb_image.h">
+      <Filter>Pliki nagłówkowe</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>
